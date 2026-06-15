@@ -77,6 +77,13 @@ const targetRoles = [
 ];
 
 const aiProviderPresets = {
+  "volcengine-coding-agent-plan": {
+    label: "火山方舟 Coding/Agent Plan · Claude/Anthropic",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/coding",
+    model: "ark-code-latest",
+    apiStyle: "anthropic",
+    hint: "用于当前 Codex/Claude Code 形态的火山方舟 Coding/Agent Plan，前端会请求 /v1/messages。"
+  },
   "volcengine-agent-plan": {
     label: "火山方舟 Agent Plan · Claude/Anthropic",
     baseUrl: "https://ark.cn-beijing.volces.com/api/plan",
@@ -233,7 +240,7 @@ function normalizeAiConfig(config) {
   const hasRealKey = Boolean(config.apiKey && config.apiKey.trim());
   const oldOpenAiDefault = !config.provider && (!config.baseUrl || config.baseUrl === "https://api.openai.com/v1");
   if (!hasRealKey && oldOpenAiDefault) {
-    return { provider: "volcengine-agent-plan" };
+    return { provider: "volcengine-coding-agent-plan" };
   }
   if (config.provider === "volcengine-agent-plan" && (config.baseUrl || "").includes("/api/plan/v3")) {
     return { ...config, provider: "volcengine-agent-plan-openai", apiStyle: "openai" };
@@ -244,11 +251,12 @@ function normalizeAiConfig(config) {
 function inferAiProvider(config = aiConfig) {
   if (config.provider && aiProviderPresets[config.provider]) return config.provider;
   const baseUrl = config.baseUrl || "";
+  if (baseUrl.includes("ark.cn-beijing.volces.com/api/coding")) return "volcengine-coding-agent-plan";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan/v3")) return "volcengine-agent-plan-openai";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan")) return "volcengine-agent-plan";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/v3")) return "volcengine-ark";
   if (baseUrl.includes("api.openai.com")) return "openai-compatible";
-  return "volcengine-agent-plan";
+  return "volcengine-coding-agent-plan";
 }
 
 function aiPreset(provider) {

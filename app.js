@@ -168,7 +168,7 @@ function getApiBase() {
 }
 
 function getProvider() {
-  return remoteConfig.provider || "cloudflare";
+  return remoteConfig.provider || "github";
 }
 
 function getUserId() {
@@ -181,8 +181,8 @@ function getToken() {
 
 function getGithubConfig() {
   return {
-    owner: remoteConfig.githubOwner || "",
-    repo: remoteConfig.githubRepo || "",
+    owner: remoteConfig.githubOwner || "jackprox26",
+    repo: remoteConfig.githubRepo || "career-workflow-progress",
     branch: remoteConfig.githubBranch || "main",
     path: remoteConfig.githubPath || "progress/default.json"
   };

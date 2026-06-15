@@ -30,7 +30,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -190,6 +191,16 @@ h3 {
   border-radius: 8px;
   color: var(--ink);
   background: #fff;
+}
+
+.provider-fields.is-hidden {
+  display: none;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 8px;
 }
 
 .text-field:focus {

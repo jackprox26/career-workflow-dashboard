@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>转岗工作流可视化系统</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260615-github-sync" />
   </head>
   <body>
     <div class="app-shell">
@@ -49,11 +49,34 @@
 
         <div class="side-panel sync-panel">
           <p class="panel-label">云端同步</p>
-          <label class="field-label" for="apiBaseInput">API地址</label>
-          <input id="apiBaseInput" class="text-field" type="url" autocomplete="url" placeholder="默认同站 API" />
+          <label class="field-label" for="syncProviderSelect">同步后端</label>
+          <select id="syncProviderSelect" class="text-field">
+            <option value="cloudflare">Cloudflare API</option>
+            <option value="github">GitHub 仓库</option>
+          </select>
+          <div class="provider-fields" data-provider-fields="cloudflare">
+            <label class="field-label" for="apiBaseInput">API地址</label>
+            <input id="apiBaseInput" class="text-field" type="url" autocomplete="url" placeholder="默认同站 API" />
+          </div>
+          <div class="provider-fields is-hidden" data-provider-fields="github">
+            <label class="field-label" for="githubOwnerInput">Owner</label>
+            <input id="githubOwnerInput" class="text-field" type="text" autocomplete="off" placeholder="jackprox26" />
+            <label class="field-label" for="githubRepoInput">Repo</label>
+            <input id="githubRepoInput" class="text-field" type="text" autocomplete="off" placeholder="career-workflow-progress" />
+            <div class="field-row">
+              <div>
+                <label class="field-label" for="githubBranchInput">Branch</label>
+                <input id="githubBranchInput" class="text-field" type="text" autocomplete="off" placeholder="main" />
+              </div>
+              <div>
+                <label class="field-label" for="githubPathInput">Path</label>
+                <input id="githubPathInput" class="text-field" type="text" autocomplete="off" placeholder="progress/default.json" />
+              </div>
+            </div>
+          </div>
           <label class="field-label" for="userIdInput">用户ID</label>
           <input id="userIdInput" class="text-field" type="text" autocomplete="username" placeholder="default" />
-          <label class="field-label" for="syncTokenInput">同步令牌</label>
+          <label class="field-label" for="syncTokenInput">访问令牌</label>
           <input id="syncTokenInput" class="text-field" type="password" autocomplete="current-password" placeholder="部署后填写" />
           <div class="sync-actions">
             <button id="saveConfigButton" class="small-button" type="button">保存配置</button>
@@ -153,6 +176,6 @@
       </main>
     </div>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=20260615-github-sync"></script>
   </body>
 </html>

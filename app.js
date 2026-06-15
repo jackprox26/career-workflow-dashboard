@@ -167,12 +167,25 @@ function getApiBase() {
   return (remoteConfig.apiBase || window.location.origin).replace(/\/$/, "");
 }
 
+function getProvider() {
+  return remoteConfig.provider || "cloudflare";
+}
+
 function getUserId() {
   return remoteConfig.userId || "default";
 }
 
 function getToken() {
   return remoteConfig.token || "";
+}
+
+function getGithubConfig() {
+  return {
+    owner: remoteConfig.githubOwner || "",
+    repo: remoteConfig.githubRepo || "",
+    branch: remoteConfig.githubBranch || "main",
+    path: remoteConfig.githubPath || "progress/default.json"
+  };
 }
 
 function setSyncStatus(message, tone = "neutral") {
@@ -182,13 +195,32 @@ function setSyncStatus(message, tone = "neutral") {
   element.dataset.tone = tone;
 }
 
+function updateProviderFields() {
+  const provider = document.querySelector("#syncProviderSelect")?.value || getProvider();
+  document.querySelectorAll("[data-provider-fields]").forEach((element) => {
+    element.classList.toggle("is-hidden", element.dataset.providerFields !== provider);
+  });
+}
+
 function hydrateSyncFields() {
+  const providerSelect = document.querySelector("#syncProviderSelect");
   const apiInput = document.querySelector("#apiBaseInput");
   const userInput = document.querySelector("#userIdInput");
   const tokenInput = document.querySelector("#syncTokenInput");
+  const githubOwnerInput = document.querySelector("#githubOwnerInput");
+  const githubRepoInput = document.querySelector("#githubRepoInput");
+  const githubBranchInput = document.querySelector("#githubBranchInput");
+  const githubPathInput = document.querySelector("#githubPathInput");
+  const githubConfig = getGithubConfig();
+  if (providerSelect) providerSelect.value = getProvider();
   if (apiInput) apiInput.value = remoteConfig.apiBase || "";
   if (userInput) userInput.value = getUserId();
   if (tokenInput) tokenInput.value = getToken();
+  if (githubOwnerInput) githubOwnerInput.value = githubConfig.owner;
+  if (githubRepoInput) githubRepoInput.value = githubConfig.repo;
+  if (githubBranchInput) githubBranchInput.value = githubConfig.branch;
+  if (githubPathInput) githubPathInput.value = githubConfig.path;
+  updateProviderFields();
   setSyncStatus(getToken() ? "已保存同步配置" : "未连接云端");
 }
 
@@ -203,7 +235,26 @@ function buildProgressPayload(source = "web") {
   };
 }
 
-async function requestRemote(path, options = {}) {
+function encodePath(path) {
+  return path.split("/").map((part) => encodeURIComponent(part)).join("/");
+}
+
+function textToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+function base64ToText(base64) {
+  const binary = atob(base64.replace(/\n/g, ""));
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function requestCloudflare(path, options = {}) {
   const token = getToken();
   if (!token) throw new Error("缺少同步令牌");
   const headers = {
@@ -219,9 +270,89 @@ async function requestRemote(path, options = {}) {
   return response.json();
 }
 
+function githubHeaders() {
+  const token = getToken();
+  if (!token) throw new Error("缺少 GitHub Token");
+  return {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+}
+
+function githubContentUrl() {
+  const { owner, repo, branch, path } = getGithubConfig();
+  if (!owner || !repo || !path) throw new Error("缺少 GitHub Owner/Repo/Path");
+  const url = new URL(`https://api.github.com/repos/${owner}/${repo}/contents/${encodePath(path)}`);
+  url.searchParams.set("ref", branch || "main");
+  return url.toString();
+}
+
+async function fetchGithubProgress({ allowMissing = false } = {}) {
+  const response = await fetch(githubContentUrl(), {
+    method: "GET",
+    headers: githubHeaders()
+  });
+  if (response.status === 404 && allowMissing) return null;
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `GitHub HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  const record = JSON.parse(base64ToText(data.content || ""));
+  return { record, sha: data.sha };
+}
+
+async function putGithubProgress(payload) {
+  const { branch } = getGithubConfig();
+  const existing = await fetchGithubProgress({ allowMissing: true });
+  const record = {
+    ...payload,
+    source: payload.source || "web-github",
+    updatedAt: new Date().toISOString()
+  };
+  const body = {
+    message: `Update career progress ${record.updatedAt}`,
+    content: textToBase64(`${JSON.stringify(record, null, 2)}\n`),
+    branch: branch || "main"
+  };
+  if (existing?.sha) body.sha = existing.sha;
+
+  const response = await fetch(githubContentUrl().replace(/\?ref=.*/, ""), {
+    method: "PUT",
+    headers: githubHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `GitHub HTTP ${response.status}`);
+  }
+  await response.json();
+  return record;
+}
+
+async function fetchRemoteProgress() {
+  if (getProvider() === "github") {
+    const data = await fetchGithubProgress({ allowMissing: true });
+    return data?.record || null;
+  }
+  return requestCloudflare(`/api/progress?user=${encodeURIComponent(getUserId())}`, { method: "GET" });
+}
+
+async function putRemoteProgress(payload) {
+  if (getProvider() === "github") {
+    return putGithubProgress(payload);
+  }
+  return requestCloudflare(`/api/progress?user=${encodeURIComponent(getUserId())}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
 async function pullRemoteProgress() {
   setSyncStatus("正在拉取云端进度...");
-  const data = await requestRemote(`/api/progress?user=${encodeURIComponent(getUserId())}`, { method: "GET" });
+  const data = await fetchRemoteProgress();
   if (data && data.progress && typeof data.progress === "object") {
     progress = data.progress;
     localStorage.setItem(storageKey, JSON.stringify(progress));
@@ -235,10 +366,7 @@ async function pullRemoteProgress() {
 async function pushRemoteProgress(source = "web") {
   setSyncStatus("正在同步到云端...");
   const payload = buildProgressPayload(source);
-  const data = await requestRemote(`/api/progress?user=${encodeURIComponent(getUserId())}`, {
-    method: "PUT",
-    body: JSON.stringify(payload)
-  });
+  const data = await putRemoteProgress(payload);
   setSyncStatus(`已同步：${data.updatedAt}`, "ok");
 }
 
@@ -472,13 +600,20 @@ document.querySelector("#saveConfigButton").addEventListener("click", () => {
   const apiBase = document.querySelector("#apiBaseInput").value.trim();
   remoteConfig = {
     ...remoteConfig,
+    provider: document.querySelector("#syncProviderSelect").value,
     apiBase,
     userId: document.querySelector("#userIdInput").value.trim() || "default",
-    token: document.querySelector("#syncTokenInput").value.trim()
+    token: document.querySelector("#syncTokenInput").value.trim(),
+    githubOwner: document.querySelector("#githubOwnerInput").value.trim(),
+    githubRepo: document.querySelector("#githubRepoInput").value.trim(),
+    githubBranch: document.querySelector("#githubBranchInput").value.trim() || "main",
+    githubPath: document.querySelector("#githubPathInput").value.trim() || "progress/default.json"
   };
   saveRemoteConfig();
   hydrateSyncFields();
 });
+
+document.querySelector("#syncProviderSelect").addEventListener("change", updateProviderFields);
 
 document.querySelector("#pullRemoteButton").addEventListener("click", () => {
   pullRemoteProgress().catch((error) => setSyncStatus(`拉取失败：${error.message}`, "error"));

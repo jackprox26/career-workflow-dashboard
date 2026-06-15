@@ -681,6 +681,198 @@ h3 {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.small-button.full {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.sync-status[data-tone="neutral"] {
+  color: var(--muted);
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.task-open-button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-open-button:hover .task-title {
+  color: var(--accent-strong);
+}
+
+.os-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.25fr);
+  gap: 18px;
+}
+
+.os-panel,
+.role-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 28px rgba(21, 38, 31, 0.06);
+}
+
+.role-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.os-panel label,
+.drawer-card label {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.large-field {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.transcript-field {
+  min-height: 220px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.icon-text-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(40, 122, 99, 0.22);
+  border-radius: 8px;
+  color: var(--accent-strong);
+  background: rgba(40, 122, 99, 0.08);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.record-list {
+  display: grid;
+  gap: 12px;
+}
+
+.record-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.record-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.record-head h3 {
+  font-size: 16px;
+}
+
+.ai-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--blue);
+  border-radius: 8px;
+  color: #253145;
+  background: rgba(47, 111, 186, 0.08);
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.locked-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.task-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+}
+
+.task-drawer.is-open {
+  display: block;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 24, 20, 0.28);
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(560px, 100%);
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  background: var(--surface);
+  box-shadow: -24px 0 60px rgba(21, 38, 31, 0.18);
+}
+
+.drawer-close {
+  position: sticky;
+  top: 0;
+  margin-left: auto;
+}
+
+.drawer-card {
+  display: grid;
+  gap: 10px;
+}
+
+.drawer-card h3 {
+  font-size: 22px;
+}
+
 @media (max-width: 1120px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -701,10 +893,17 @@ h3 {
     display: none;
   }
 
+  .sync-panel,
+  .vault-panel,
+  .ai-panel {
+    display: block;
+  }
+
   .metrics-grid,
   .map-rail,
   .workflow-grid,
-  .portfolio-grid {
+  .portfolio-grid,
+  .os-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -737,6 +936,8 @@ h3 {
   .map-rail,
   .workflow-grid,
   .portfolio-grid,
+  .os-layout,
+  .form-grid,
   .portfolio-meta {
     grid-template-columns: 1fr;
   }

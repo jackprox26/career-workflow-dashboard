@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>转岗工作流可视化系统</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-github-default" />
+    <link rel="stylesheet" href="./styles.css?v=20260615-career-os-v1" />
   </head>
   <body>
     <div class="app-shell">
@@ -38,6 +38,22 @@
           <button class="nav-item" data-view="portfolio" type="button">
             <span class="nav-icon" aria-hidden="true">◧</span>
             作品集
+          </button>
+          <button class="nav-item" data-view="fragments" type="button">
+            <span class="nav-icon" aria-hidden="true">✎</span>
+            知识/经历
+          </button>
+          <button class="nav-item" data-view="jobs" type="button">
+            <span class="nav-icon" aria-hidden="true">⌕</span>
+            岗位选择
+          </button>
+          <button class="nav-item" data-view="applications" type="button">
+            <span class="nav-icon" aria-hidden="true">▤</span>
+            投递跟踪
+          </button>
+          <button class="nav-item" data-view="interviews" type="button">
+            <span class="nav-icon" aria-hidden="true">◌</span>
+            面试复盘
           </button>
         </nav>
 
@@ -83,6 +99,29 @@
             <button id="pullRemoteButton" class="small-button secondary" type="button">拉取</button>
           </div>
           <p id="syncStatus" class="sync-status">未连接云端</p>
+        </div>
+
+        <div class="side-panel vault-panel">
+          <p class="panel-label">加密资料库</p>
+          <label class="field-label" for="vaultPassphraseInput">资料口令</label>
+          <input id="vaultPassphraseInput" class="text-field" type="password" autocomplete="current-password" placeholder="只在本机解密" />
+          <div class="sync-actions">
+            <button id="unlockVaultButton" class="small-button" type="button">解锁</button>
+            <button id="lockVaultButton" class="small-button secondary" type="button">锁定</button>
+          </div>
+          <p id="vaultStatus" class="sync-status">资料库未解锁</p>
+        </div>
+
+        <div class="side-panel ai-panel">
+          <p class="panel-label">AI建议</p>
+          <label class="field-label" for="aiBaseUrlInput">Base URL</label>
+          <input id="aiBaseUrlInput" class="text-field" type="url" autocomplete="off" placeholder="https://api.openai.com/v1" />
+          <label class="field-label" for="aiModelInput">Model</label>
+          <input id="aiModelInput" class="text-field" type="text" autocomplete="off" placeholder="gpt-4.1-mini" />
+          <label class="field-label" for="aiApiKeyInput">API Key</label>
+          <input id="aiApiKeyInput" class="text-field" type="password" autocomplete="off" placeholder="只保存在当前浏览器" />
+          <button id="saveAiConfigButton" class="small-button full" type="button">保存AI配置</button>
+          <p id="aiStatus" class="sync-status">未配置AI</p>
         </div>
       </aside>
 
@@ -173,9 +212,17 @@
         <section class="view" id="portfolioView" aria-label="作品集资产">
           <div class="portfolio-grid" id="portfolioGrid"></div>
         </section>
+
+        <section class="view" id="fragmentsView" aria-label="知识与经历"></section>
+
+        <section class="view" id="jobsView" aria-label="岗位选择"></section>
+
+        <section class="view" id="applicationsView" aria-label="投递跟踪"></section>
+
+        <section class="view" id="interviewsView" aria-label="面试复盘"></section>
       </main>
     </div>
 
-    <script src="./app.js?v=20260615-github-default"></script>
+    <script src="./app.js?v=20260615-career-os-v1"></script>
   </body>
 </html>

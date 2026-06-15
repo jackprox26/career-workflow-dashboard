@@ -78,27 +78,45 @@ const targetRoles = [
 
 const aiProviderPresets = {
   "volcengine-agent-plan": {
-    label: "火山方舟 Agent Plan",
+    label: "火山方舟 Agent Plan · Claude/Anthropic",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/plan",
+    model: "ark-code-latest",
+    apiStyle: "anthropic",
+    hint: "用于方舟 Agent Plan 给 Claude Code/AI工具的 Anthropic-compatible 入口。Model 以控制台显示的模型/接入点 ID 为准。"
+  },
+  "volcengine-agent-plan-openai": {
+    label: "火山方舟 Agent Plan · OpenAI兼容",
     baseUrl: "https://ark.cn-beijing.volces.com/api/plan/v3",
     model: "ark-code-latest",
-    hint: "用于方舟 Agent Plan 的 OpenAI-compatible 入口。Model 以控制台显示的模型/接入点 ID 为准。"
+    apiStyle: "openai",
+    hint: "用于方舟 Agent Plan 的 OpenAI-compatible 入口，请确认你的 Plan 已开通该协议。"
   },
   "volcengine-ark": {
     label: "火山方舟 Ark 标准接口",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     model: "",
+    apiStyle: "openai",
     hint: "用于普通方舟推理接口。Model 通常填写控制台里的模型 ID 或接入点 ID。"
   },
   "openai-compatible": {
     label: "OpenAI-compatible",
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-4.1-mini",
+    apiStyle: "openai",
     hint: "用于标准 /chat/completions 兼容服务。"
+  },
+  "custom-anthropic": {
+    label: "自定义 Anthropic-compatible",
+    baseUrl: "",
+    model: "",
+    apiStyle: "anthropic",
+    hint: "用于自定义 /v1/messages 兼容网关，Base URL 不要包含 /v1/messages。"
   },
   custom: {
     label: "自定义",
     baseUrl: "",
     model: "",
+    apiStyle: "openai",
     hint: "保留当前输入，适合代理网关、公司内网或其他兼容服务。"
   }
 };
@@ -217,12 +235,16 @@ function normalizeAiConfig(config) {
   if (!hasRealKey && oldOpenAiDefault) {
     return { provider: "volcengine-agent-plan" };
   }
+  if (config.provider === "volcengine-agent-plan" && (config.baseUrl || "").includes("/api/plan/v3")) {
+    return { ...config, provider: "volcengine-agent-plan-openai", apiStyle: "openai" };
+  }
   return config;
 }
 
 function inferAiProvider(config = aiConfig) {
   if (config.provider && aiProviderPresets[config.provider]) return config.provider;
   const baseUrl = config.baseUrl || "";
+  if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan/v3")) return "volcengine-agent-plan-openai";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan")) return "volcengine-agent-plan";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/v3")) return "volcengine-ark";
   if (baseUrl.includes("api.openai.com")) return "openai-compatible";
@@ -245,8 +267,10 @@ function applyAiPresetToFields(provider, overwrite = true) {
 
 function collectAiConfigFromFields() {
   const provider = document.querySelector("#aiProviderSelect")?.value || inferAiProvider();
+  const preset = aiPreset(provider);
   return {
     provider,
+    apiStyle: preset.apiStyle || "openai",
     baseUrl: document.querySelector("#aiBaseUrlInput")?.value.trim() || "",
     model: document.querySelector("#aiModelInput")?.value.trim() || "",
     apiKey: document.querySelector("#aiApiKeyInput")?.value.trim() || ""
@@ -640,6 +664,14 @@ async function runAiAction(kind, input) {
     interview: "你是AI产品经理面试教练。请根据逐字稿输出：表现总结、追问点、回答漏洞、优化版回答、下一次准备清单。",
     test: "你是连接测试助手。请只回复一句中文：AI连接正常。"
   };
+  const provider = inferAiProvider(aiConfig);
+  const apiStyle = aiConfig.apiStyle || aiPreset(provider).apiStyle || "openai";
+  const prompt = prompts[kind] || prompts.task;
+  if (apiStyle === "anthropic") return runAnthropicCompatibleAction(prompt, input);
+  return runOpenAiCompatibleAction(prompt, input);
+}
+
+async function runOpenAiCompatibleAction(systemPrompt, input) {
   const response = await fetch(`${aiConfig.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
@@ -650,7 +682,7 @@ async function runAiAction(kind, input) {
       model: aiConfig.model,
       temperature: 0.3,
       messages: [
-        { role: "system", content: prompts[kind] || prompts.task },
+        { role: "system", content: systemPrompt },
         { role: "user", content: input }
       ]
     })
@@ -658,6 +690,35 @@ async function runAiAction(kind, input) {
   if (!response.ok) throw new Error((await response.text()) || `AI HTTP ${response.status}`);
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "AI 未返回内容";
+}
+
+async function runAnthropicCompatibleAction(systemPrompt, input) {
+  const response = await fetch(`${aiConfig.baseUrl.replace(/\/$/, "")}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": aiConfig.apiKey,
+      "Authorization": `Bearer ${aiConfig.apiKey}`,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: aiConfig.model,
+      max_tokens: 1800,
+      temperature: 0.3,
+      system: systemPrompt,
+      messages: [
+        { role: "user", content: input }
+      ]
+    })
+  });
+  if (!response.ok) throw new Error((await response.text()) || `AI HTTP ${response.status}`);
+  const data = await response.json();
+  const text = data.content
+    ?.map((block) => typeof block === "string" ? block : block?.text || "")
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+  return text || data.choices?.[0]?.message?.content || "AI 未返回内容";
 }
 
 function formatAiError(error) {

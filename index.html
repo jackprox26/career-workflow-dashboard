@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>转岗工作流可视化系统</title>
-    <link rel="stylesheet" href="./styles.css?v=20260616-ark-agent-plan" />
+    <link rel="stylesheet" href="./styles.css?v=20260616-ark-agent-plan-v2" />
   </head>
   <body>
     <div class="app-shell">
@@ -116,9 +116,11 @@
           <p class="panel-label">AI建议</p>
           <label class="field-label" for="aiProviderSelect">模型服务</label>
           <select id="aiProviderSelect" class="text-field">
-            <option value="volcengine-agent-plan">火山方舟 Agent Plan</option>
+            <option value="volcengine-agent-plan">火山方舟 Agent Plan · Claude/Anthropic</option>
+            <option value="volcengine-agent-plan-openai">火山方舟 Agent Plan · OpenAI兼容</option>
             <option value="volcengine-ark">火山方舟 Ark 标准接口</option>
             <option value="openai-compatible">OpenAI-compatible</option>
+            <option value="custom-anthropic">自定义 Anthropic-compatible</option>
             <option value="custom">自定义</option>
           </select>
           <p id="aiProviderHint" class="field-hint">默认使用火山方舟 Agent Plan。</p>
@@ -234,6 +236,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260616-ark-agent-plan"></script>
+    <script src="./app.js?v=20260616-ark-agent-plan-v2"></script>
   </body>
 </html>

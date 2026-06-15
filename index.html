@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>转岗工作流可视化系统</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-career-os-v1" />
+    <link rel="stylesheet" href="./styles.css?v=20260616-ark-agent-plan" />
   </head>
   <body>
     <div class="app-shell">
@@ -114,13 +114,24 @@
 
         <div class="side-panel ai-panel">
           <p class="panel-label">AI建议</p>
+          <label class="field-label" for="aiProviderSelect">模型服务</label>
+          <select id="aiProviderSelect" class="text-field">
+            <option value="volcengine-agent-plan">火山方舟 Agent Plan</option>
+            <option value="volcengine-ark">火山方舟 Ark 标准接口</option>
+            <option value="openai-compatible">OpenAI-compatible</option>
+            <option value="custom">自定义</option>
+          </select>
+          <p id="aiProviderHint" class="field-hint">默认使用火山方舟 Agent Plan。</p>
           <label class="field-label" for="aiBaseUrlInput">Base URL</label>
           <input id="aiBaseUrlInput" class="text-field" type="url" autocomplete="off" placeholder="https://api.openai.com/v1" />
           <label class="field-label" for="aiModelInput">Model</label>
           <input id="aiModelInput" class="text-field" type="text" autocomplete="off" placeholder="gpt-4.1-mini" />
           <label class="field-label" for="aiApiKeyInput">API Key</label>
           <input id="aiApiKeyInput" class="text-field" type="password" autocomplete="off" placeholder="只保存在当前浏览器" />
-          <button id="saveAiConfigButton" class="small-button full" type="button">保存AI配置</button>
+          <div class="sync-actions">
+            <button id="saveAiConfigButton" class="small-button" type="button">保存AI配置</button>
+            <button id="testAiConfigButton" class="small-button secondary" type="button">测试连接</button>
+          </div>
           <p id="aiStatus" class="sync-status">未配置AI</p>
         </div>
       </aside>
@@ -223,6 +234,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260615-career-os-v1"></script>
+    <script src="./app.js?v=20260616-ark-agent-plan"></script>
   </body>
 </html>

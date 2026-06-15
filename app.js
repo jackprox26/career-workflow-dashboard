@@ -76,6 +76,33 @@ const targetRoles = [
   { id: "audit-risk-data", title: "质量/审核/风控数据产品", city: "杭州/上海", fit: 78, reason: "规则审核、异常归因和风险看板可证明产品化能力。", keywords: ["审核", "风控", "风险评分", "数据看板", "策略产品"] }
 ];
 
+const aiProviderPresets = {
+  "volcengine-agent-plan": {
+    label: "火山方舟 Agent Plan",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/plan/v3",
+    model: "ark-code-latest",
+    hint: "用于方舟 Agent Plan 的 OpenAI-compatible 入口。Model 以控制台显示的模型/接入点 ID 为准。"
+  },
+  "volcengine-ark": {
+    label: "火山方舟 Ark 标准接口",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    model: "",
+    hint: "用于普通方舟推理接口。Model 通常填写控制台里的模型 ID 或接入点 ID。"
+  },
+  "openai-compatible": {
+    label: "OpenAI-compatible",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4.1-mini",
+    hint: "用于标准 /chat/completions 兼容服务。"
+  },
+  custom: {
+    label: "自定义",
+    baseUrl: "",
+    model: "",
+    hint: "保留当前输入，适合代理网关、公司内网或其他兼容服务。"
+  }
+};
+
 const storageKey = "career-os-record-v2";
 const legacyProgressKey = "career-workflow-progress-v1";
 const remoteConfigKey = "career-workflow-remote-config-v1";
@@ -181,6 +208,39 @@ function loadAiConfig() {
 
 function saveAiConfig() {
   localStorage.setItem(aiConfigKey, JSON.stringify(aiConfig));
+}
+
+function inferAiProvider(config = aiConfig) {
+  if (config.provider && aiProviderPresets[config.provider]) return config.provider;
+  const baseUrl = config.baseUrl || "";
+  if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan")) return "volcengine-agent-plan";
+  if (baseUrl.includes("ark.cn-beijing.volces.com/api/v3")) return "volcengine-ark";
+  if (baseUrl.includes("api.openai.com")) return "openai-compatible";
+  return "volcengine-agent-plan";
+}
+
+function aiPreset(provider) {
+  return aiProviderPresets[provider] || aiProviderPresets.custom;
+}
+
+function applyAiPresetToFields(provider, overwrite = true) {
+  const preset = aiPreset(provider);
+  const base = document.querySelector("#aiBaseUrlInput");
+  const model = document.querySelector("#aiModelInput");
+  const hint = document.querySelector("#aiProviderHint");
+  if (base && preset.baseUrl && (overwrite || !base.value.trim())) base.value = preset.baseUrl;
+  if (model && preset.model && (overwrite || !model.value.trim())) model.value = preset.model;
+  if (hint) hint.textContent = preset.hint;
+}
+
+function collectAiConfigFromFields() {
+  const provider = document.querySelector("#aiProviderSelect")?.value || inferAiProvider();
+  return {
+    provider,
+    baseUrl: document.querySelector("#aiBaseUrlInput")?.value.trim() || "",
+    model: document.querySelector("#aiModelInput")?.value.trim() || "",
+    apiKey: document.querySelector("#aiApiKeyInput")?.value.trim() || ""
+  };
 }
 
 function getApiBase() {
@@ -567,7 +627,8 @@ async function runAiAction(kind, input) {
     task: "你是AI产品经理求职教练。请审核该任务详情，输出：1. 缺少的信息；2. 可面试表达；3. 下一步行动；4. 简历bullet建议。",
     fragment: "你是AI产品经理简历教练。请把碎片经历改写为STAR素材，输出可量化动作、AI产品化角度、简历bullet。",
     job: "你是JD匹配分析师。请结合候选人背景：跨境服饰电商品控主管、供应商管理、质检抽检、AI审单/Dify/图像识别。输出匹配度、风险、简历关键词、投递建议。",
-    interview: "你是AI产品经理面试教练。请根据逐字稿输出：表现总结、追问点、回答漏洞、优化版回答、下一次准备清单。"
+    interview: "你是AI产品经理面试教练。请根据逐字稿输出：表现总结、追问点、回答漏洞、优化版回答、下一次准备清单。",
+    test: "你是连接测试助手。请只回复一句中文：AI连接正常。"
   };
   const response = await fetch(`${aiConfig.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
@@ -587,6 +648,27 @@ async function runAiAction(kind, input) {
   if (!response.ok) throw new Error((await response.text()) || `AI HTTP ${response.status}`);
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "AI 未返回内容";
+}
+
+function formatAiError(error) {
+  const message = error?.message || String(error);
+  if (/Failed to fetch|NetworkError|Load failed/i.test(message)) {
+    return "请求未到达模型服务，可能是网络、代理或浏览器跨域限制。可以先确认浏览器能访问方舟 endpoint，或改用支持 CORS 的代理网关。";
+  }
+  return message;
+}
+
+async function testAiConnection() {
+  try {
+    aiConfig = collectAiConfigFromFields();
+    saveAiConfig();
+    renderAiPanel();
+    setAiStatus(`正在测试 ${aiPreset(aiConfig.provider).label}...`, "neutral");
+    const result = await runAiAction("test", "请回复：AI连接正常。");
+    setAiStatus(`测试成功：${result.slice(0, 80)}`, "ok");
+  } catch (error) {
+    setAiStatus(`测试失败：${formatAiError(error)}`, "error");
+  }
 }
 
 function renderMetrics() {
@@ -870,13 +952,18 @@ function renderVaultPanel() {
 }
 
 function renderAiPanel() {
+  const provider = document.querySelector("#aiProviderSelect");
   const base = document.querySelector("#aiBaseUrlInput");
   const model = document.querySelector("#aiModelInput");
   const key = document.querySelector("#aiApiKeyInput");
-  if (base) base.value = aiConfig.baseUrl || "https://api.openai.com/v1";
-  if (model) model.value = aiConfig.model || "";
+  const providerValue = inferAiProvider(aiConfig);
+  const preset = aiPreset(providerValue);
+  if (provider) provider.value = providerValue;
+  if (base) base.value = aiConfig.baseUrl || preset.baseUrl || "";
+  if (model) model.value = aiConfig.model || preset.model || "";
   if (key) key.value = aiConfig.apiKey || "";
-  setAiStatus(aiConfig.apiKey ? "AI配置已保存到当前浏览器" : "未配置AI", aiConfig.apiKey ? "ok" : "neutral");
+  applyAiPresetToFields(providerValue, false);
+  setAiStatus(aiConfig.apiKey ? `AI配置已保存：${preset.label}` : `待填写API Key：${preset.label}`, aiConfig.apiKey ? "ok" : "neutral");
 }
 
 function renderAll() {
@@ -1010,13 +1097,14 @@ function installEventHandlers() {
   });
   document.querySelector("#lockVaultButton")?.addEventListener("click", lockVault);
   document.querySelector("#saveAiConfigButton")?.addEventListener("click", () => {
-    aiConfig = {
-      baseUrl: document.querySelector("#aiBaseUrlInput").value.trim(),
-      model: document.querySelector("#aiModelInput").value.trim(),
-      apiKey: document.querySelector("#aiApiKeyInput").value.trim()
-    };
+    aiConfig = collectAiConfigFromFields();
     saveAiConfig();
     renderAiPanel();
+  });
+  document.querySelector("#testAiConfigButton")?.addEventListener("click", testAiConnection);
+  document.querySelector("#aiProviderSelect")?.addEventListener("change", (event) => {
+    applyAiPresetToFields(event.target.value, true);
+    setAiStatus(`已应用${aiPreset(event.target.value).label}预设，保存后生效`, "neutral");
   });
   document.addEventListener("click", handleDocumentClick);
   document.addEventListener("submit", handleDocumentSubmit);
@@ -1209,7 +1297,7 @@ async function aiForTask(key) {
     openTaskDrawer(key);
     setAiStatus("AI任务审核已保存", "ok");
   } catch (error) {
-    setAiStatus(`AI失败：${error.message}`, "error");
+    setAiStatus(`AI失败：${formatAiError(error)}`, "error");
   }
 }
 
@@ -1224,7 +1312,7 @@ async function aiForFragment(id) {
     await persistVault();
     setAiStatus("AI经历建议已保存", "ok");
   } catch (error) {
-    setAiStatus(`AI失败：${error.message}`, "error");
+    setAiStatus(`AI失败：${formatAiError(error)}`, "error");
   }
 }
 
@@ -1239,7 +1327,7 @@ async function aiForJob(id) {
     await persistVault();
     setAiStatus("AI JD分析已保存", "ok");
   } catch (error) {
-    setAiStatus(`AI失败：${error.message}`, "error");
+    setAiStatus(`AI失败：${formatAiError(error)}`, "error");
   }
 }
 
@@ -1254,7 +1342,7 @@ async function aiForInterview(id) {
     await persistVault();
     setAiStatus("AI面试复盘已保存", "ok");
   } catch (error) {
-    setAiStatus(`AI失败：${error.message}`, "error");
+    setAiStatus(`AI失败：${formatAiError(error)}`, "error");
   }
 }
 

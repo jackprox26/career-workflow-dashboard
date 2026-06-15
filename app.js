@@ -200,7 +200,7 @@ function saveRemoteConfig() {
 
 function loadAiConfig() {
   try {
-    return JSON.parse(localStorage.getItem(aiConfigKey)) || {};
+    return normalizeAiConfig(JSON.parse(localStorage.getItem(aiConfigKey)) || {});
   } catch {
     return {};
   }
@@ -208,6 +208,16 @@ function loadAiConfig() {
 
 function saveAiConfig() {
   localStorage.setItem(aiConfigKey, JSON.stringify(aiConfig));
+}
+
+function normalizeAiConfig(config) {
+  if (!config || typeof config !== "object") return {};
+  const hasRealKey = Boolean(config.apiKey && config.apiKey.trim());
+  const oldOpenAiDefault = !config.provider && (!config.baseUrl || config.baseUrl === "https://api.openai.com/v1");
+  if (!hasRealKey && oldOpenAiDefault) {
+    return { provider: "volcengine-agent-plan" };
+  }
+  return config;
 }
 
 function inferAiProvider(config = aiConfig) {

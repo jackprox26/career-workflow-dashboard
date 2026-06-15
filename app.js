@@ -425,6 +425,19 @@ function renderAll() {
   bindTaskEvents();
 }
 
+function renderDateLine() {
+  const dateLine = document.querySelector("#dateLine");
+  if (!dateLine) return;
+  const today = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  })
+    .format(new Date())
+    .replaceAll("/", "-");
+  dateLine.textContent = `${today} / 30天冲刺`;
+}
+
 function bindTaskEvents() {
   document.querySelectorAll('input[type="checkbox"][data-workflow]').forEach((input) => {
     input.addEventListener("change", (event) => {
@@ -492,6 +505,7 @@ document.querySelector("#exportButton").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
+renderDateLine();
 hydrateSyncFields();
 renderAll();
 if (getToken()) {

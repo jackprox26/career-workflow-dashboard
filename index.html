@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>转岗工作流可视化系统</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img">
+              <path d="M4 5.5C4 4.67 4.67 4 5.5 4h13c.83 0 1.5.67 1.5 1.5v13c0 .83-.67 1.5-1.5 1.5h-13C4.67 20 4 19.33 4 18.5v-13Z" />
+              <path d="M8 9h8M8 13h5M8 17h7" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">Career Ops</p>
+            <h1>转岗工作台</h1>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item is-active" data-view="overview" type="button">
+            <span class="nav-icon" aria-hidden="true">◎</span>
+            总览
+          </button>
+          <button class="nav-item" data-view="workflows" type="button">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            工作流
+          </button>
+          <button class="nav-item" data-view="today" type="button">
+            <span class="nav-icon" aria-hidden="true">✓</span>
+            今日
+          </button>
+          <button class="nav-item" data-view="portfolio" type="button">
+            <span class="nav-icon" aria-hidden="true">◧</span>
+            作品集
+          </button>
+        </nav>
+
+        <div class="side-panel">
+          <p class="panel-label">本月主目标</p>
+          <strong>先拿到可投递能力</strong>
+          <span>简历、主作品集、面试故事和投递记录优先。</span>
+        </div>
+
+        <div class="side-panel sync-panel">
+          <p class="panel-label">云端同步</p>
+          <label class="field-label" for="apiBaseInput">API地址</label>
+          <input id="apiBaseInput" class="text-field" type="url" autocomplete="url" placeholder="默认同站 API" />
+          <label class="field-label" for="userIdInput">用户ID</label>
+          <input id="userIdInput" class="text-field" type="text" autocomplete="username" placeholder="default" />
+          <label class="field-label" for="syncTokenInput">同步令牌</label>
+          <input id="syncTokenInput" class="text-field" type="password" autocomplete="current-password" placeholder="部署后填写" />
+          <div class="sync-actions">
+            <button id="saveConfigButton" class="small-button" type="button">保存配置</button>
+            <button id="pullRemoteButton" class="small-button secondary" type="button">拉取</button>
+          </div>
+          <p id="syncStatus" class="sync-status">未连接云端</p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">2026-06-14 / 30天冲刺</p>
+            <h2 id="viewTitle">总览</h2>
+          </div>
+          <div class="actions">
+            <button class="sync-button" id="pushRemoteButton" type="button">同步到云端</button>
+            <button class="icon-button" id="exportButton" type="button" title="导出进度JSON" aria-label="导出进度JSON">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" />
+              </svg>
+            </button>
+            <button class="icon-button" id="resetButton" type="button" title="重置进度" aria-label="重置进度">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 12a8 8 0 1 0 2.34-5.66M4 5v5h5" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <section class="view is-visible" id="overviewView" aria-labelledby="viewTitle">
+          <div class="metrics-grid" id="metricsGrid"></div>
+          <section class="workflow-map" aria-label="转岗流程图">
+            <div class="map-header">
+              <div>
+                <p class="eyebrow">Workflow Map</p>
+                <h3>从业务经验到AI产品offer</h3>
+              </div>
+              <span id="overallBadge" class="status-badge">进行中</span>
+            </div>
+            <div class="map-rail" id="mapRail"></div>
+          </section>
+          <section class="split-layout">
+            <div class="panel">
+              <div class="panel-heading">
+                <h3>本周必须完成</h3>
+                <span>Week 1</span>
+              </div>
+              <div class="task-list compact" id="weekOneList"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-heading">
+                <h3>风险信号</h3>
+                <span>Guardrails</span>
+              </div>
+              <ul class="risk-list">
+                <li>不要把公司真实数据放进公开作品集。</li>
+                <li>不要继续扩散刷课，先产出简历和案例。</li>
+                <li>不要同时开太多作品，主线先做深。</li>
+                <li>不要裸辞，先拿到可投递材料和面试反馈。</li>
+              </ul>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="workflowsView" aria-label="工作流详情">
+          <div class="workflow-grid" id="workflowGrid"></div>
+        </section>
+
+        <section class="view" id="todayView" aria-label="今日行动">
+          <div class="today-layout">
+            <div class="panel today-main">
+              <div class="panel-heading">
+                <h3>今日行动队列</h3>
+                <span id="todayCount">0项</span>
+              </div>
+              <div class="task-list" id="todayList"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-heading">
+                <h3>执行原则</h3>
+                <span>Focus</span>
+              </div>
+              <ol class="principle-list">
+                <li>每天只推进能产生外部反馈的任务。</li>
+                <li>每个作品都要有用户、痛点、流程、指标。</li>
+                <li>学习资料必须转成方法论、案例或面试表达。</li>
+                <li>投递后按JD反馈反向修简历。</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="portfolioView" aria-label="作品集资产">
+          <div class="portfolio-grid" id="portfolioGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

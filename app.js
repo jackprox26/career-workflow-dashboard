@@ -77,26 +77,26 @@ const targetRoles = [
 ];
 
 const aiProviderPresets = {
-  "volcengine-coding-agent-plan": {
-    label: "火山方舟 Coding/Agent Plan · Claude/Anthropic",
-    baseUrl: "https://ark.cn-beijing.volces.com/api/coding",
+  "volcengine-agent-plan-openai": {
+    label: "火山方舟 Agent Plan · OpenAI兼容",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/plan/v3",
     model: "ark-code-latest",
-    apiStyle: "anthropic",
-    hint: "用于当前 Codex/Claude Code 形态的火山方舟 Coding/Agent Plan，前端会请求 /v1/messages。"
+    apiStyle: "openai",
+    hint: "对应火山方舟 Agent Plan 页面里的 OpenAI 兼容 Base URL。请使用“配置专属API Key”步骤里的 Key。"
   },
   "volcengine-agent-plan": {
     label: "火山方舟 Agent Plan · Claude/Anthropic",
     baseUrl: "https://ark.cn-beijing.volces.com/api/plan",
     model: "ark-code-latest",
     apiStyle: "anthropic",
-    hint: "用于方舟 Agent Plan 给 Claude Code/AI工具的 Anthropic-compatible 入口。Model 以控制台显示的模型/接入点 ID 为准。"
+    hint: "对应火山方舟 Agent Plan 页面里的 Anthropic 兼容 Base URL。"
   },
-  "volcengine-agent-plan-openai": {
-    label: "火山方舟 Agent Plan · OpenAI兼容",
-    baseUrl: "https://ark.cn-beijing.volces.com/api/plan/v3",
+  "volcengine-coding-agent-plan": {
+    label: "火山方舟 Coding Plan · Claude/Anthropic",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/coding",
     model: "ark-code-latest",
-    apiStyle: "openai",
-    hint: "用于方舟 Agent Plan 的 OpenAI-compatible 入口，请确认你的 Plan 已开通该协议。"
+    apiStyle: "anthropic",
+    hint: "仅当你在火山方舟 Coding Plan 页看到 /api/coding 时使用。Agent Plan 页面不要选这一项。"
   },
   "volcengine-ark": {
     label: "火山方舟 Ark 标准接口",
@@ -240,7 +240,7 @@ function normalizeAiConfig(config) {
   const hasRealKey = Boolean(config.apiKey && config.apiKey.trim());
   const oldOpenAiDefault = !config.provider && (!config.baseUrl || config.baseUrl === "https://api.openai.com/v1");
   if (!hasRealKey && oldOpenAiDefault) {
-    return { provider: "volcengine-coding-agent-plan" };
+    return { provider: "volcengine-agent-plan-openai" };
   }
   if (config.provider === "volcengine-agent-plan" && (config.baseUrl || "").includes("/api/plan/v3")) {
     return { ...config, provider: "volcengine-agent-plan-openai", apiStyle: "openai" };
@@ -256,7 +256,7 @@ function inferAiProvider(config = aiConfig) {
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/plan")) return "volcengine-agent-plan";
   if (baseUrl.includes("ark.cn-beijing.volces.com/api/v3")) return "volcengine-ark";
   if (baseUrl.includes("api.openai.com")) return "openai-compatible";
-  return "volcengine-coding-agent-plan";
+  return "volcengine-agent-plan-openai";
 }
 
 function aiPreset(provider) {
@@ -732,7 +732,19 @@ async function runAnthropicCompatibleAction(systemPrompt, input) {
 function formatAiError(error) {
   const message = error?.message || String(error);
   if (/Failed to fetch|NetworkError|Load failed/i.test(message)) {
-    return "请求未到达模型服务，可能是网络、代理或浏览器跨域限制。可以先确认浏览器能访问方舟 endpoint，或改用支持 CORS 的代理网关。";
+    return "请求未到达模型服务，常见原因是浏览器跨域限制或网络代理拦截。GitHub Pages 是纯前端，火山方舟如果不允许浏览器跨域直连，测试会失败。";
+  }
+  if (/401|Unauthorized|unauthorized/i.test(message)) {
+    return "401 未授权：通常是 API Key 不对、不是 Agent Plan 的“专属API Key”、Key 未复制完整，或当前套餐/权限还没生效。";
+  }
+  if (/403|Forbidden|forbidden/i.test(message)) {
+    return "403 无权限：通常是 Agent Plan 权限、模型权限、套餐状态或专属 Key 权限未开通。";
+  }
+  if (/404|Not Found|not_found/i.test(message)) {
+    return "404 地址不匹配：请按火山方舟 Agent Plan 页填写 /api/plan/v3 或 /api/plan，不要使用普通推理 /api/v3。";
+  }
+  if (/429|rate|quota|limit/i.test(message)) {
+    return "额度或频率受限：请检查 Agent Plan 套餐额度、续费状态或稍后重试。";
   }
   return message;
 }
@@ -1077,6 +1089,7 @@ function showView(view) {
   Object.entries(views).forEach(([key, section]) => section.classList.toggle("is-visible", key === view));
   const title = document.querySelector("#viewTitle");
   if (title) title.textContent = viewTitles[view] || "总览";
+  document.querySelector(".main")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function taskDrawerMarkup(key) {
